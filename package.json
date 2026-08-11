@@ -1,0 +1,55 @@
+{
+  "name": "vision-toolkit",
+  "version": "0.1.0",
+  "description": "多模态视觉 MCP + 文生图 Skill 工具包 (OpenAI GPT-4o · 通义千问 Qwen-VL · Google Gemini)",
+  "license": "MIT",
+  "author": "leiming2333",
+  "homepage": "https://github.com/leiming2333/Vision-Toolkit",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/leiming2333/Vision-Toolkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/leiming2333/Vision-Toolkit/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "skill",
+    "toolkit",
+    "multimodal",
+    "vision",
+    "image",
+    "openai",
+    "qwen-vl",
+    "gemini",
+    "ocr",
+    "object-detection",
+    "text-to-image"
+  ],
+  "bin": {
+    "vision-toolkit": "bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "server.py",
+    "image_utils.py",
+    "providers/",
+    "scripts/",
+    ".trae/skills/",
+    "requirements.txt",
+    ".env.example",
+    "README.md",
+    "README.zh.md"
+  ],
+  "scripts": {
+    "start": "node bin/cli.js",
+    "sse": "node bin/cli.js --transport sse --host 0.0.0.0 --port 8765",
+    "setup": "python -m pip install -r requirements.txt",
+    "postinstall": "node bin/postinstall.js",
+    "prepublishOnly": "node -e \"['.','providers','scripts'].forEach(d=>require('fs').rmSync(require('path').join(d,'__pycache__'),{recursive:true,force:true}))\""
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

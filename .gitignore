@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.Python
+*.egg-info/
+
+# 虚拟环境
+venv/
+.venv/
+
+# 本地环境变量
+.env
+.env.local
+
+# Node
+node_modules/
+npm-debug.log*
+
+# IDE / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 打包产物
+*.tgz

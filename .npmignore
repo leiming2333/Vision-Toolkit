@@ -1,0 +1,29 @@
+# Python 缓存与临时文件
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# 本地环境
+.env
+.env.local
+venv/
+.venv/
+
+# npm / Node
+node_modules/
+npm-debug.log*
+
+# IDE / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 测试与 CI
+tests/
+.github/
+.git/
+.gitignore
