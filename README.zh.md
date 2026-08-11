@@ -27,7 +27,14 @@
   - [方式三:独立 Skill 脚本(无需 MCP,全 Agent 可用)](#方式三独立-skill-脚本无需-mcp全-agent-可用)
 - [配置 Provider 密钥](#配置-provider-密钥)
 - [在 MCP 客户端中接入](#在-mcp-客户端中接入)
-  - [Trae / Claude Desktop(stdio)](#trae--claude-desktopstdio)
+  - [Trae(原生 Skill + MCP)](#trae原生-skill--mcp)
+  - [使用 `mcpServers` JSON 格式的客户端](#使用-mcpservers-json-格式的客户端)
+  - [Claude Code](#claude-code)
+  - [OpenCode](#opencode)
+  - [Codex CLI(OpenAI)](#codex-cliopenai)
+  - [Continue](#continue)
+  - [Gemini CLI](#gemini-cli)
+  - [Zed](#zed)
   - [SSE 远程模式](#sse-远程模式)
 - [暴露的 MCP 工具](#暴露的-mcp-工具)
 - [文本生图 Skill](#文本生图-skill)
@@ -77,13 +84,15 @@
 
 Vision Toolkit 提供两种安装方式,任选其一。**前置条件**:Python 3.10+ 和至少一个 provider 的 API Key。
 
+> **想接入某个 AI Agent?** 大部分支持 MCP 的客户端(Trae、Claude Desktop、Cursor、Windsurf、Cline、Continue、Roo Code、OpenCode、Codex CLI、Gemini CLI、Zed、GitHub Copilot、Claude Code)都能通过 `npx vision-toolkit` 自动拉起本工具。直接跳到 [在 MCP 客户端中接入](#在-mcp-客户端中接入) 查看各客户端的配置片段。
+
 ### 方式 A:通过 npm 安装(推荐,自动管理 Python 依赖)
 
 ```bash
-# 1. 临时执行(无需安装,适合接入 MCP 客户端)
+# 1. 临时执行(无需安装)——MCP 客户端最常用的入口
 npx vision-toolkit
 
-# 2. 全局安装
+# 2. 全局安装(之后 `vision-toolkit` 命令就在 PATH 上)
 npm install -g vision-toolkit
 vision-toolkit
 
@@ -224,9 +233,15 @@ SKILL_GEMINI_API_KEY=...
 
 ## 在 MCP 客户端中接入
 
-### Trae / Claude Desktop(stdio)
+Vision Toolkit 遵循标准 MCP 协议,任何兼容 MCP 的客户端都能接入。下面覆盖了 2026 年主流的 AI Agent,所有示例都假设你通过 `env`(或 shell)设置了 API Key,详见 [配置 Provider 密钥](#配置-provider-密钥)。
 
-在客户端的 MCP 配置文件中加入:
+### Trae(原生 Skill + MCP)
+
+Vision Toolkit 自带两个 TRAE 原生 Skill(`.trae/skills/`),所以 Trae 用户有最佳的开箱即用体验:工作区自动加载 Skill,**同时**可连接 MCP server 获得全部 6 个工具。
+
+**方式 A —— UI(推荐):** 设置 → MCP → 添加 → 手动添加 → 粘贴下方 JSON。
+
+**方式 B —— 项目级配置:** 在项目根目录创建 `.trae/mcp.json`(需先在 设置 → MCP 中开启"启用项目级 MCP"):
 
 ```json
 {
@@ -243,7 +258,38 @@ SKILL_GEMINI_API_KEY=...
 }
 ```
 
-若已全局安装,也可直接用:
+接入后,Trae 既会使用 MCP 工具(`analyze_image`、`generate_image` 等),**也会**自动识别 `.trae/skills/` 下的两个 Skill 用于独立生图 / 图像分析 —— 无需额外配置。
+
+### 使用 `mcpServers` JSON 格式的客户端
+
+下列客户端共享同一套 `mcpServers` JSON schema —— 同一段配置块复制到各自的配置文件即可:
+
+| 客户端 | 配置文件位置 |
+|--------|-------------|
+| **Trae** | 工作区/全局 MCP 设置(UI 或 `mcp.json`) |
+| **Claude Desktop** | macOS:`~/Library/Application Support/Claude/claude_desktop_config.json` · Windows:`%APPDATA%\Claude\claude_desktop_config.json` |
+| **Cursor** | 全局:`~/.cursor/mcp.json` · 项目:`.cursor/mcp.json` |
+| **Windsurf** | `~/.codeium/windsurf/mcp_config.json` |
+| **Cline**(VS Code) | `cline_mcp_settings.json`(Cline MCP 面板 → Configure) |
+| **Roo Code**(VS Code) | 全局:`mcp_settings.json` · 项目:`.roo/mcp.json` |
+| **GitHub Copilot**(VS Code) | `~/.vscode/mcp.json`(VS Code 1.102+)或 `.vscode/mcp.json` |
+
+```json
+{
+  "mcpServers": {
+    "vision": {
+      "command": "npx",
+      "args": ["-y", "vision-toolkit"],
+      "env": {
+        "OPENAI_API_KEY": "sk-...",
+        "DASHSCOPE_API_KEY": "sk-..."
+      }
+    }
+  }
+}
+```
+
+若已全局安装,可直接用二进制:
 
 ```json
 {
@@ -256,7 +302,7 @@ SKILL_GEMINI_API_KEY=...
 }
 ```
 
-手动运行 Python 的写法:
+手动运行 Python(clone 安装):
 
 ```json
 {
@@ -264,6 +310,108 @@ SKILL_GEMINI_API_KEY=...
     "vision": {
       "command": "python",
       "args": ["C:\\path\\to\\Vision-Toolkit\\server.py"],
+      "env": { "OPENAI_API_KEY": "sk-..." }
+    }
+  }
+}
+```
+
+> 部分客户端(Cursor、Cline)编辑后热重载;Claude Desktop 需要完全重启。
+
+### Claude Code
+
+Claude Code 使用 `~/.claude.json`(用户级)或 `.mcp.json`(项目级),schema 与上面的 `mcpServers` JSON 相同。也可通过 CLI 添加:
+
+```bash
+claude mcp add vision --env OPENAI_API_KEY=sk-... --env DASHSCOPE_API_KEY=sk-... -- npx -y vision-toolkit
+```
+
+### OpenCode
+
+OpenCode 使用 `opencode.json` / `opencode.jsonc`(在 `~/.config/opencode/` 或项目根目录),结构略有不同:`command` 是数组,且键名是 `mcp`(不是 `mcpServers`)。
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "vision": {
+      "type": "local",
+      "command": ["npx", "-y", "vision-toolkit"],
+      "enabled": true,
+      "environment": {
+        "OPENAI_API_KEY": "sk-...",
+        "DASHSCOPE_API_KEY": "sk-..."
+      }
+    }
+  }
+}
+```
+
+### Codex CLI(OpenAI)
+
+Codex 把 MCP 配置放在 `~/.codex/config.toml`,使用 TOML 格式。注意键名是 snake_case 的 `mcp_servers`(不是 `mcpServers`)。
+
+```toml
+[mcp_servers.vision]
+command = "npx"
+args = ["-y", "vision-toolkit"]
+env = { OPENAI_API_KEY = "sk-...", DASHSCOPE_API_KEY = "sk-..." }
+startup_timeout_sec = 20
+```
+
+或通过 CLI:
+
+```bash
+codex mcp add vision --env OPENAI_API_KEY=sk-... --env DASHSCOPE_API_KEY=sk-... -- npx -y vision-toolkit
+```
+
+用 `codex mcp list` 验证,或在 Codex TUI 里执行 `/mcp`。
+
+### Continue
+
+Continue 从 YAML 配置读取 MCP 服务器(`~/.continue/config.yaml` 或工作区 `.continue/mcpServers/<name>.yaml`)。
+
+```yaml
+mcpServers:
+  - name: vision
+    type: stdio
+    command: npx
+    args:
+      - "-y"
+      - "vision-toolkit"
+    env:
+      OPENAI_API_KEY: sk-...
+      DASHSCOPE_API_KEY: sk-...
+```
+
+### Gemini CLI
+
+Gemini CLI 读取 `~/.gemini/settings.json`,接受标准 `mcpServers` JSON 格式。
+
+```json
+{
+  "mcpServers": {
+    "vision": {
+      "command": "npx",
+      "args": ["-y", "vision-toolkit"],
+      "env": { "GEMINI_API_KEY": "..." }
+    }
+  }
+}
+```
+
+### Zed
+
+Zed 把 MCP 服务器放在 `~/.config/zed/settings.json`(macOS:`~/Library/Application Support/Zed/settings.json`)的 `context_servers` 下。
+
+```json
+{
+  "context_servers": {
+    "vision": {
+      "command": {
+        "path": "npx",
+        "args": ["-y", "vision-toolkit"]
+      },
       "env": { "OPENAI_API_KEY": "sk-..." }
     }
   }
@@ -278,7 +426,7 @@ SKILL_GEMINI_API_KEY=...
 vision-toolkit --transport sse --host 0.0.0.0 --port 8765
 ```
 
-客户端配置:
+客户端配置(JSON 客户端):
 
 ```json
 {
@@ -288,6 +436,27 @@ vision-toolkit --transport sse --host 0.0.0.0 --port 8765
         "type": "sse",
         "url": "http://your-server:8765/sse"
       }
+    }
+  }
+}
+```
+
+Codex CLI(TOML)—— 用 `url` 代替 `command`:
+
+```toml
+[mcp_servers.vision]
+url = "http://your-server:8765/sse"
+```
+
+OpenCode(JSON):
+
+```json
+{
+  "mcp": {
+    "vision": {
+      "type": "remote",
+      "url": "http://your-server:8765/sse",
+      "enabled": true
     }
   }
 }

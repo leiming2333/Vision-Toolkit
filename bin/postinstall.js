@@ -57,6 +57,55 @@ async function main() {
         "  或: " + python + " -m pip install -r requirements.txt"
     );
   }
+
+  // 展示可接入的 AI Agent 列表
+  console.log("");
+  console.log("  ╔══════════════════════════════════════════════════════════════╗");
+  console.log("  ║   Vision Toolkit 已安装完成 ✨                                ║");
+  console.log("  ║   多模态视觉 MCP + 文生图 Skill (OpenAI / Qwen / Gemini)     ║");
+  console.log("  ╚══════════════════════════════════════════════════════════════╝");
+  console.log("");
+  console.log("  ── 支持接入的 AI Agent ──────────────────────────────────────");
+  console.log("");
+  console.log("    1.  Trae                (原生 Skill + MCP, 最佳体验)");
+  console.log("    2.  Claude Desktop      (mcpServers JSON)");
+  console.log("    3.  Claude Code         (.mcp.json)");
+  console.log("    4.  Cursor              (.cursor/mcp.json)");
+  console.log("    5.  Windsurf            (mcp_config.json)");
+  console.log("    6.  Cline               (cline_mcp_settings.json)");
+  console.log("    7.  Roo Code            (.roo/mcp.json)");
+  console.log("    8.  GitHub Copilot      (.vscode/mcp.json)");
+  console.log("    9.  OpenCode            (opencode.json)");
+  console.log("    10. Codex CLI           (~/.codex/config.toml)");
+  console.log("    11. Continue            (~/.continue/config.yaml)");
+  console.log("    12. Gemini CLI          (~/.gemini/settings.json)");
+  console.log("    13. Zed                 (context_servers)");
+  console.log("");
+  console.log("  ── 快速接入 ─────────────────────────────────────────────────");
+  console.log("");
+  console.log("    复制以下配置到对应客户端的配置文件:");
+  console.log("");
+  console.log('      {');
+  console.log('        "mcpServers": {');
+  console.log('          "vision": {');
+  console.log('            "command": "npx",');
+  console.log('            "args": ["-y", "vision-toolkit"],');
+  console.log('            "env": {');
+  console.log('              "OPENAI_API_KEY": "sk-...",');
+  console.log('              "DASHSCOPE_API_KEY": "sk-..."');
+  console.log('            }');
+  console.log('          }');
+  console.log('        }');
+  console.log('      }');
+  console.log("");
+  console.log("  ── 下一步 ───────────────────────────────────────────────────");
+  console.log("");
+  console.log("    1. 设置至少一个 API Key (OPENAI_API_KEY / DASHSCOPE_API_KEY / GEMINI_API_KEY)");
+  console.log("    2. 复制上方配置到你的 Agent 配置文件 (详见文档)");
+  console.log("    3. 重启对应 Agent 即可使用视觉工具");
+  console.log("");
+  console.log("  文档: https://github.com/leiming2333/Vision-Toolkit");
+  console.log("");
 }
 
 main().finally(() => process.exit(0));

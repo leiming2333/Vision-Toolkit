@@ -27,7 +27,14 @@
   - [Option 3: Standalone Skills (no MCP server, works for any agent)](#option-3-standalone-skills-no-mcp-server-works-for-any-agent)
 - [Configure Provider Keys](#configure-provider-keys)
 - [Connect to MCP Clients](#connect-to-mcp-clients)
-  - [Trae / Claude Desktop (stdio)](#trae--claude-desktop-stdio)
+  - [Trae (native Skills + MCP)](#trae-native-skills--mcp)
+  - [Clients using the `mcpServers` JSON format](#clients-using-the-mcpservers-json-format)
+  - [Claude Code](#claude-code)
+  - [OpenCode](#opencode)
+  - [Codex CLI (OpenAI)](#codex-cli-openai)
+  - [Continue](#continue)
+  - [Gemini CLI](#gemini-cli)
+  - [Zed](#zed)
   - [SSE remote mode](#sse-remote-mode)
 - [MCP Tools](#mcp-tools)
 - [Text-to-Image Skill](#text-to-image-skill)
@@ -77,13 +84,15 @@
 
 Vision Toolkit offers two install methods. **Prerequisite**: Python 3.10+ and at least one provider API key.
 
+> **Looking to connect an AI agent?** Most MCP-compatible clients (Trae, Claude Desktop, Cursor, Windsurf, Cline, Continue, Roo Code, OpenCode, Codex CLI, Gemini CLI, Zed, GitHub Copilot, Claude Code) can launch Vision Toolkit automatically via `npx vision-toolkit`. Skip to [Connect to MCP Clients](#connect-to-mcp-clients) for per-client config snippets.
+
 ### Method A: Install via npm (recommended, Python deps auto-managed)
 
 ```bash
-# 1. Run on-the-fly without installing (good for MCP clients)
+# 1. Run on-the-fly without installing — the typical entry point used by MCP clients
 npx vision-toolkit
 
-# 2. Install globally
+# 2. Install globally (then the `vision-toolkit` command is on PATH)
 npm install -g vision-toolkit
 vision-toolkit
 
@@ -223,9 +232,15 @@ Any variable above can be prefixed with `SKILL_` to override it for the Skills o
 
 ## Connect to MCP Clients
 
-### Trae / Claude Desktop (stdio)
+Vision Toolkit follows the standard MCP protocol, so any MCP-compatible client can connect. The snippets below cover the most popular agents in 2026. All examples assume you set API keys via `env` (or your shell); see [Configure Provider Keys](#configure-provider-keys).
 
-Add this to your client's MCP config:
+### Trae (native Skills + MCP)
+
+Vision Toolkit ships with two TRAE-native Skills (`.trae/skills/`), so Trae users get the best out-of-the-box experience: the Skills are auto-loaded by the workspace, **and** the MCP server can be connected for the full 6-tool set.
+
+**Option A — UI (recommended):** Settings → MCP → Add → Configure Manually → paste the JSON below.
+
+**Option B — project-level config:** create `.trae/mcp.json` in your project root (enable "Project-level MCP" in Settings → MCP first):
 
 ```json
 {
@@ -242,7 +257,38 @@ Add this to your client's MCP config:
 }
 ```
 
-If installed globally:
+After connecting, Trae will use the MCP tools (`analyze_image`, `generate_image`, etc.) **and** auto-detect the two Skills in `.trae/skills/` for standalone image generation / analysis — no extra setup needed.
+
+### Clients using the `mcpServers` JSON format
+
+The following clients all share the same `mcpServers` JSON schema — copy the same block into the config file for each:
+
+| Client | Config file location |
+|--------|----------------------|
+| **Trae** | Workspace / global MCP settings (UI or `mcp.json`) |
+| **Claude Desktop** | macOS: `~/Library/Application Support/Claude/claude_desktop_config.json` · Windows: `%APPDATA%\Claude\claude_desktop_config.json` |
+| **Cursor** | Global: `~/.cursor/mcp.json` · Project: `.cursor/mcp.json` |
+| **Windsurf** | `~/.codeium/windsurf/mcp_config.json` |
+| **Cline** (VS Code) | `cline_mcp_settings.json` (Cline MCP panel → Configure) |
+| **Roo Code** (VS Code) | Global: `mcp_settings.json` · Project: `.roo/mcp.json` |
+| **GitHub Copilot** (VS Code) | `~/.vscode/mcp.json` (VS Code 1.102+) or `.vscode/mcp.json` |
+
+```json
+{
+  "mcpServers": {
+    "vision": {
+      "command": "npx",
+      "args": ["-y", "vision-toolkit"],
+      "env": {
+        "OPENAI_API_KEY": "sk-...",
+        "DASHSCOPE_API_KEY": "sk-..."
+      }
+    }
+  }
+}
+```
+
+If installed globally, use the direct binary instead:
 
 ```json
 {
@@ -255,7 +301,7 @@ If installed globally:
 }
 ```
 
-Manual Python:
+Manual Python (clone install):
 
 ```json
 {
@@ -263,6 +309,108 @@ Manual Python:
     "vision": {
       "command": "python",
       "args": ["/path/to/Vision-Toolkit/server.py"],
+      "env": { "OPENAI_API_KEY": "sk-..." }
+    }
+  }
+}
+```
+
+> Some clients (Cursor, Cline) hot-reload after editing; Claude Desktop requires a full restart.
+
+### Claude Code
+
+Claude Code uses `~/.claude.json` (user scope) or `.mcp.json` (project scope). The schema is the same `mcpServers` JSON as above. You can also add it via CLI:
+
+```bash
+claude mcp add vision --env OPENAI_API_KEY=sk-... --env DASHSCOPE_API_KEY=sk-... -- npx -y vision-toolkit
+```
+
+### OpenCode
+
+OpenCode uses `opencode.json` / `opencode.jsonc` (in `~/.config/opencode/` or the project root) with a slightly different shape: `command` is an array and the key is `mcp` (not `mcpServers`).
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "vision": {
+      "type": "local",
+      "command": ["npx", "-y", "vision-toolkit"],
+      "enabled": true,
+      "environment": {
+        "OPENAI_API_KEY": "sk-...",
+        "DASHSCOPE_API_KEY": "sk-..."
+      }
+    }
+  }
+}
+```
+
+### Codex CLI (OpenAI)
+
+Codex stores MCP config in `~/.codex/config.toml` using TOML. Note the snake_case key `mcp_servers` (not `mcpServers`).
+
+```toml
+[mcp_servers.vision]
+command = "npx"
+args = ["-y", "vision-toolkit"]
+env = { OPENAI_API_KEY = "sk-...", DASHSCOPE_API_KEY = "sk-..." }
+startup_timeout_sec = 20
+```
+
+Or via the CLI:
+
+```bash
+codex mcp add vision --env OPENAI_API_KEY=sk-... --env DASHSCOPE_API_KEY=sk-... -- npx -y vision-toolkit
+```
+
+Verify with `codex mcp list` or run `/mcp` inside the Codex TUI.
+
+### Continue
+
+Continue reads MCP servers from YAML config (`~/.continue/config.yaml` or `.continue/mcpServers/<name>.yaml` in the workspace).
+
+```yaml
+mcpServers:
+  - name: vision
+    type: stdio
+    command: npx
+    args:
+      - "-y"
+      - "vision-toolkit"
+    env:
+      OPENAI_API_KEY: sk-...
+      DASHSCOPE_API_KEY: sk-...
+```
+
+### Gemini CLI
+
+Gemini CLI reads `~/.gemini/settings.json` and accepts the standard `mcpServers` JSON shape.
+
+```json
+{
+  "mcpServers": {
+    "vision": {
+      "command": "npx",
+      "args": ["-y", "vision-toolkit"],
+      "env": { "GEMINI_API_KEY": "..." }
+    }
+  }
+}
+```
+
+### Zed
+
+Zed stores MCP servers under `context_servers` in `~/.config/zed/settings.json` (macOS: `~/Library/Application Support/Zed/settings.json`).
+
+```json
+{
+  "context_servers": {
+    "vision": {
+      "command": {
+        "path": "npx",
+        "args": ["-y", "vision-toolkit"]
+      },
       "env": { "OPENAI_API_KEY": "sk-..." }
     }
   }
@@ -277,7 +425,7 @@ Start on the server:
 vision-toolkit --transport sse --host 0.0.0.0 --port 8765
 ```
 
-Client config:
+Client config (JSON clients):
 
 ```json
 {
@@ -287,6 +435,27 @@ Client config:
         "type": "sse",
         "url": "http://your-server:8765/sse"
       }
+    }
+  }
+}
+```
+
+Codex CLI (TOML) — use `url` instead of `command`:
+
+```toml
+[mcp_servers.vision]
+url = "http://your-server:8765/sse"
+```
+
+OpenCode (JSON):
+
+```json
+{
+  "mcp": {
+    "vision": {
+      "type": "remote",
+      "url": "http://your-server:8765/sse",
+      "enabled": true
     }
   }
 }
