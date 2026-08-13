@@ -190,12 +190,21 @@ vision-toolkit --configure
 ```
 
 The wizard covers:
-- **Provider (multi-select)**: OpenAI / Qwen / Gemini / Anthropic Claude / **unified proxy endpoint** / custom OpenAI-compatible endpoint / custom Anthropic-compatible endpoint — select one or all at once
+- **Provider (multi-select)**: OpenAI / Qwen / Gemini / Anthropic Claude / **unified proxy endpoint** / **OpenAI-compatible aggregator** / custom Anthropic-compatible endpoint — select one or all at once
 - **API Key**: required for each selected provider
 - **Base URL**: for OpenAI / Anthropic compatible endpoints (proxy / self-hosted supported)
 - **Model ID (MODID)**: optional — if skipped, the server auto-detects available models via `GET {base_url}/models` on startup
 
 > **Unified proxy endpoint**: for aggregator services like zenmux.ai / OneAPI / NewAPI — a single Base URL + API Key configures both OpenAI and Anthropic (Claude) at once, no need to fill them separately. Model IDs can be skipped and are auto-detected on startup.
+>
+> **OpenAI-compatible aggregator**: built-in presets for popular services — pick a number to auto-fill the Base URL:
+> - **OpenRouter** (`openrouter.ai`) — aggregates GPT-4o / Claude / Gemini etc.
+> - **Together AI** (`api.together.xyz`) — open-source models
+> - **Fireworks AI** (`api.fireworks.ai`) — open-source models
+> - **Groq** (`api.groq.com`) — ultra-fast inference, open-source models
+> - **DeepInfra** (`api.deepinfra.com`) — open-source models
+> - **SiliconFlow** (`api.siliconflow.cn`) — China-based aggregator
+> - Custom endpoint (manual entry)
 
 ### Manual configuration
 

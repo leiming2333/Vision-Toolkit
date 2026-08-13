@@ -70,7 +70,7 @@ const PROVIDERS = [
   },
   {
     id: "unified-proxy",
-    label: "统一中转端点 (如 zenmux.ai / OneAPI / NewAPI, 一个 Key 通吃)",
+    label: "统一中转端点 (一个 Key 通吃 OpenAI + Anthropic)",
     keyName: "OPENAI_API_KEY",
     baseUrlKey: "OPENAI_BASE_URL",
     baseUrlDefault: "https://api.zenmux.ai/v1",
@@ -83,19 +83,33 @@ const PROVIDERS = [
     extra: { ANTHROPIC_API_VERSION: "2023-06-01" },
     note: "一个端点 + 一个 Key 同时配置 OpenAI 和 Anthropic (Claude), 模型 ID 可跳过",
     unified: true,
+    presets: [
+      { label: "zenmux.ai", baseUrl: "https://api.zenmux.ai/v1" },
+      { label: "OneAPI / NewAPI (自部署, 需填地址)", baseUrl: "" },
+      { label: "自定义 (手动填写 Base URL)", baseUrl: "" },
+    ],
   },
   {
     id: "openai-custom",
-    label: "自定义 OpenAI 兼容端点 (中转 / 自部署)",
+    label: "OpenAI 兼容聚合服务 (OpenRouter / Together / Groq 等)",
     keyName: "OPENAI_API_KEY",
     baseUrlKey: "OPENAI_BASE_URL",
-    baseUrlDefault: "https://your-endpoint.com/v1",
+    baseUrlDefault: "https://openrouter.ai/api/v1",
     models: {
       OPENAI_VISION_MODEL: "",
       OPENAI_IMAGE_MODEL: "",
       OPENAI_EMBEDDING_MODEL: "",
     },
-    note: "模型 ID 可跳过, 启动时自动获取",
+    note: "OpenAI 兼容端点 (中转 / 聚合 / 自部署), 模型 ID 可跳过, 启动时自动获取",
+    presets: [
+      { label: "OpenRouter (聚合 GPT-4o / Claude / Gemini 等)", baseUrl: "https://openrouter.ai/api/v1" },
+      { label: "Together AI (开源模型为主)", baseUrl: "https://api.together.xyz/v1" },
+      { label: "Fireworks AI (开源模型为主)", baseUrl: "https://api.fireworks.ai/inference/v1" },
+      { label: "Groq (超快推理, 开源模型)", baseUrl: "https://api.groq.com/openai/v1" },
+      { label: "DeepInfra (开源模型为主)", baseUrl: "https://api.deepinfra.com/v1" },
+      { label: "SiliconFlow (硅基流动, 国产聚合)", baseUrl: "https://api.siliconflow.cn/v1" },
+      { label: "自定义 OpenAI 兼容端点 (手动填写)", baseUrl: "" },
+    ],
   },
   {
     id: "anthropic-custom",
@@ -189,11 +203,38 @@ async function configureProvider(rl, provider, existing) {
     return config;
   }
 
-  // Base URL
+  // Base URL (支持 presets 预设服务快速选择)
   if (provider.baseUrlKey) {
     const existingUrl = existing[provider.baseUrlKey] || "";
-    const urlDefault = provider.baseUrlDefault || existingUrl;
-    const baseUrl = await ask(rl, `输入 Base URL`, urlDefault);
+    let urlDefault = provider.baseUrlDefault || existingUrl;
+    let baseUrl = "";
+
+    if (provider.presets && provider.presets.length > 0) {
+      // 列出预设服务供选择
+      console.log("  可用服务:");
+      provider.presets.forEach((p, i) => {
+        const urlHint = p.baseUrl ? `  [${p.baseUrl}]` : "  [手动填写]";
+        console.log(`    ${i + 1}. ${p.label}${urlHint}`);
+      });
+      console.log("");
+      const presetAns = await ask(rl, "选择服务 (序号, 回车用默认)", "1");
+      const idx = parseInt(presetAns, 10) - 1;
+      if (idx >= 0 && idx < provider.presets.length) {
+        const preset = provider.presets[idx];
+        if (preset.baseUrl) {
+          // 预设有 URL, 确认或修改
+          baseUrl = await ask(rl, `Base URL`, preset.baseUrl);
+        } else {
+          // 手动填写
+          baseUrl = await ask(rl, `输入 Base URL`, urlDefault);
+        }
+      } else {
+        baseUrl = await ask(rl, `输入 Base URL`, urlDefault);
+      }
+    } else {
+      baseUrl = await ask(rl, `输入 Base URL`, urlDefault);
+    }
+
     if (baseUrl) {
       config[provider.baseUrlKey] = baseUrl;
       // 统一中转端点: 智能推导 Anthropic Base URL
@@ -201,10 +242,6 @@ async function configureProvider(rl, provider, existing) {
       // Anthropic base_url 不带 /v1 (anthropic_provider.py 会拼接 /v1/messages)
       if (provider.unified) {
         let anthropicUrl = baseUrl.replace(/\/v1\/?$/, "");
-        if (anthropicUrl === baseUrl) {
-          // URL 不以 /v1 结尾, 直接用
-          anthropicUrl = baseUrl;
-        }
         config["ANTHROPIC_BASE_URL"] = anthropicUrl;
         console.log(`  (自动设置 ANTHROPIC_BASE_URL=${anthropicUrl})`);
       }

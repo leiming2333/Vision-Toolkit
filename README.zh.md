@@ -191,12 +191,21 @@ vision-toolkit --configure
 ```
 
 向导涵盖:
-- **服务商(可多选)**:OpenAI / 通义千问 / Gemini / Anthropic Claude / **统一中转端点** / 自定义 OpenAI 兼容端点 / 自定义 Anthropic 兼容端点 —— 可单选或全选
+- **服务商(可多选)**:OpenAI / 通义千问 / Gemini / Anthropic Claude / **统一中转端点** / **OpenAI 兼容聚合服务** / 自定义 Anthropic 兼容端点 —— 可单选或全选
 - **API Key**:每个所选服务商的密钥(必填)
 - **Base URL**:OpenAI / Anthropic 兼容端点地址(支持代理 / 自部署)
 - **模型 ID (MODID)**:可跳过 —— 跳过时 server 启动会通过 `GET {base_url}/models` 自动获取可用模型
 
 > **统一中转端点**:适用于 zenmux.ai / OneAPI / NewAPI 等聚合中转服务 —— 一个 Base URL + 一个 API Key 即可同时配置 OpenAI 和 Anthropic (Claude),无需分别填写。模型 ID 可跳过,启动时自动获取。
+>
+> **OpenAI 兼容聚合服务**:内置多个主流服务预设,选序号即可自动填入 Base URL:
+> - **OpenRouter**(`openrouter.ai`)—— 聚合 GPT-4o / Claude / Gemini 等
+> - **Together AI**(`api.together.xyz`)—— 开源模型为主
+> - **Fireworks AI**(`api.fireworks.ai`)—— 开源模型为主
+> - **Groq**(`api.groq.com`)—— 超快推理,开源模型
+> - **DeepInfra**(`api.deepinfra.com`)—— 开源模型为主
+> - **SiliconFlow 硅基流动**(`api.siliconflow.cn`)—— 国产聚合
+> - 自定义端点(手动填写)
 
 ### 手动配置
 
