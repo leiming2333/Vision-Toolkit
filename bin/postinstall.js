@@ -58,6 +58,14 @@ async function main() {
     );
   }
 
+  // 运行配置向导 (交互式收集 API Key / URL / 模型)
+  try {
+    const configure = require("./configure.js");
+    await configure.run();
+  } catch {
+    // 配置向导失败不阻断安装
+  }
+
   // 展示可接入的 AI Agent 列表
   console.log("");
   console.log("  ╔══════════════════════════════════════════════════════════════╗");
@@ -100,7 +108,7 @@ async function main() {
   console.log("");
   console.log("  ── 下一步 ───────────────────────────────────────────────────");
   console.log("");
-  console.log("    1. 设置至少一个 API Key (OPENAI_API_KEY / DASHSCOPE_API_KEY / GEMINI_API_KEY)");
+  console.log("    1. 如未在配置向导中设置, 运行 vision-toolkit --configure 配置 API Key");
   console.log("    2. 复制上方配置到你的 Agent 配置文件 (详见文档)");
   console.log("    3. 重启对应 Agent 即可使用视觉工具");
   console.log("");

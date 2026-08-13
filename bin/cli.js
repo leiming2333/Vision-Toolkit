@@ -10,6 +10,7 @@
  *   vision-toolkit --transport sse --port 8765  # 以 SSE 模式启动
  *   vision-toolkit --python /path/to/python     # 指定 Python 解释器
  *   vision-toolkit --setup                      # 安装 Python 依赖后退出
+ *   vision-toolkit --configure                  # 交互式配置 API Key / URL / 模型
  *
  * 环境变量:
  *   VISION_TOOLKIT_PYTHON  指定 Python 解释器路径 (同 --python)
@@ -29,6 +30,7 @@ const REQUIREMENTS = path.join(PKG_DIR, "requirements.txt");
 const argv = process.argv.slice(2);
 let pythonCmd = process.env.VISION_TOOLKIT_PYTHON || "";
 let setupOnly = false;
+let configureOnly = false;
 const passthrough = [];
 
 for (let i = 0; i < argv.length; i++) {
@@ -37,6 +39,8 @@ for (let i = 0; i < argv.length; i++) {
     pythonCmd = argv[++i];
   } else if (a === "--setup") {
     setupOnly = true;
+  } else if (a === "--configure") {
+    configureOnly = true;
   } else {
     passthrough.push(a);
   }
@@ -107,6 +111,13 @@ function installDeps(python) {
 
 // ---- 4. 主流程 ----
 async function main() {
+  // --configure: 交互式配置向导 (不需要 Python)
+  if (configureOnly) {
+    const configure = require("./configure.js");
+    await configure.run();
+    return;
+  }
+
   if (!fs.existsSync(SERVER)) {
     console.error(`[vision-toolkit] 找不到 server.py: ${SERVER}`);
     process.exit(1);

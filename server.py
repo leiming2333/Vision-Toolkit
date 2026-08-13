@@ -31,6 +31,89 @@ from providers import PROVIDER_CLASSES, VisionProvider  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
+# .env 加载: 启动时自动读取 ~/.vision-toolkit.env 和包目录 .env
+# ---------------------------------------------------------------------------
+def _load_env_file(path: str) -> None:
+    """手动解析 .env 文件, 设置 os.environ (不覆盖已有值)。"""
+    if not os.path.isfile(path):
+        return
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                eq = line.find("=")
+                if eq == -1:
+                    continue
+                key = line[:eq].strip()
+                val = line[eq + 1:].strip()
+                # 去引号
+                if len(val) >= 2 and val[0] in "\"'" and val[-1] == val[0]:
+                    val = val[1:-1]
+                if key and key not in os.environ:
+                    os.environ[key] = val
+    except Exception:
+        pass  # .env 解析失败不阻断启动
+
+
+def _load_envs() -> None:
+    """加载 .env, 优先级: 系统环境变量 > 包目录 .env > ~/.vision-toolkit.env"""
+    home_env = os.path.join(os.path.expanduser("~"), ".vision-toolkit.env")
+    _load_env_file(home_env)
+    pkg_env = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    _load_env_file(pkg_env)
+
+
+_load_envs()
+
+
+# ---------------------------------------------------------------------------
+# MODID 自动获取: 模型未配置时, 通过 API 获取可用模型列表
+# ---------------------------------------------------------------------------
+def _auto_detect_models() -> None:
+    """如果 vision/image model 为空, 尝试通过 API 自动获取。
+
+    仅支持 OpenAI 兼容端点 (GET {base_url}/models)。
+    其他 provider 静默跳过。
+    """
+    import httpx
+
+    base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        return
+
+    # 视觉模型未配置时尝试获取
+    if not os.environ.get("OPENAI_VISION_MODEL"):
+        try:
+            r = httpx.get(
+                f"{base_url}/models",
+                headers={"Authorization": f"Bearer {api_key}"},
+                timeout=10,
+            )
+            r.raise_for_status()
+            models = r.json().get("data", [])
+            # 优先选含 gpt-4 的, 否则取第一个
+            vision = next(
+                (m["id"] for m in models if "gpt-4" in m.get("id", "")),
+                models[0]["id"] if models else "",
+            )
+            if vision:
+                os.environ["OPENAI_VISION_MODEL"] = vision
+                print(f"[vision-toolkit] 自动获取视觉模型: {vision}", file=sys.stderr)
+        except Exception:
+            pass  # 获取失败使用 provider 默认值
+
+    # 生图模型未配置时用默认值
+    if not os.environ.get("OPENAI_IMAGE_MODEL"):
+        os.environ.setdefault("OPENAI_IMAGE_MODEL", "dall-e-3")
+
+
+_auto_detect_models()
+
+
+# ---------------------------------------------------------------------------
 # Provider 注册表: 启动时按可用 API Key 自动装载
 # ---------------------------------------------------------------------------
 _providers: dict[str, VisionProvider] = {}

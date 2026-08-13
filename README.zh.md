@@ -181,7 +181,23 @@ Skill 会自动被 TRAE 识别并在合适场景(用户说"画一张图/生成�
 
 至少配置**一个** provider 的 API Key 即可启动。多配可切换。
 
-复制 [.env.example](.env.example) 为 `.env`,或直接设置系统环境变量:
+### 交互式配置向导(推荐)
+
+运行内置配置向导,引导你选择服务商、填写 API Key、Base URL 和模型 ID (MODID)。配置保存到 `~/.vision-toolkit.env`,server 启动时自动加载。
+
+```bash
+vision-toolkit --configure
+```
+
+向导涵盖:
+- **服务商**:OpenAI / 通义千问 / Gemini / 自定义 OpenAI 兼容端点
+- **API Key**:所选服务商的密钥(必填)
+- **Base URL**:OpenAI 兼容端点地址(支持代理 / 自部署)
+- **模型 ID (MODID)**:可跳过 —— 跳过时 server 启动会通过 `GET {base_url}/models` 自动获取可用模型
+
+### 手动配置
+
+或者,复制 [.env.example](.env.example) 为 `.env`,或直接设置系统环境变量:
 
 ```bash
 # Windows
@@ -647,6 +663,7 @@ vision-toolkit [options]
   --port <n>                SSE 监听端口,默认 8765
   --python <path>           指定 Python 解释器路径
   --setup                   仅安装 Python 依赖后退出
+  --configure               交互式配置向导(API Key / URL / 模型, 保存到 ~/.vision-toolkit.env)
   -p <path>                 --python 的简写
 ```
 

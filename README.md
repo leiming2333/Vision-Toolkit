@@ -180,7 +180,23 @@ The Skills are auto-detected by TRAE and triggered when the user says "draw / ge
 
 Configure at least **one** provider API key to start. Multiple keys allow switching.
 
-Copy [.env.example](.env.example) to `.env`, or set system environment variables directly:
+### Interactive wizard (recommended)
+
+Run the built-in configuration wizard — it guides you through provider selection, API key, base URL, and model ID (MODID). Settings are saved to `~/.vision-toolkit.env` and auto-loaded on server start.
+
+```bash
+vision-toolkit --configure
+```
+
+The wizard covers:
+- **Provider**: OpenAI / Qwen / Gemini / custom OpenAI-compatible endpoint
+- **API Key**: required for the selected provider
+- **Base URL**: for OpenAI-compatible endpoints (proxy / self-hosted supported)
+- **Model ID (MODID)**: optional — if skipped, the server auto-detects available models via `GET {base_url}/models` on startup
+
+### Manual configuration
+
+Alternatively, copy [.env.example](.env.example) to `.env`, or set system environment variables directly:
 
 ```bash
 # Windows
@@ -646,6 +662,7 @@ Options:
   --port <n>                SSE listen port, default 8765
   --python <path>           Specify Python interpreter path
   --setup                   Install Python deps and exit
+  --configure               Interactive config wizard (API key / URL / model, saved to ~/.vision-toolkit.env)
   -p <path>                 Shortcut for --python
 ```
 
