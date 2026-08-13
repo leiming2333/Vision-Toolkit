@@ -59,11 +59,17 @@ async function main() {
   }
 
   // 运行配置向导 (交互式收集 API Key / URL / 模型)
-  try {
-    const configure = require("./configure.js");
-    await configure.run();
-  } catch {
-    // 配置向导失败不阻断安装
+  // npm install 默认不分配 TTY, 非 TTY 时提示用户手动运行
+  if (process.stdin.isTTY) {
+    try {
+      const configure = require("./configure.js");
+      await configure.run();
+    } catch {
+      // 配置向导失败不阻断安装
+    }
+  } else {
+    log("非交互式环境, 配置向导已跳过。");
+    log("完成安装后请手动运行配置向导: vision-toolkit --configure");
   }
 
   // 展示可接入的 AI Agent 列表
@@ -72,6 +78,17 @@ async function main() {
   console.log("  ║   Vision Toolkit 已安装完成 ✨                                ║");
   console.log("  ║   多模态视觉 MCP + 文生图 Skill (OpenAI/Qwen/Gemini/Claude)  ║");
   console.log("  ╚══════════════════════════════════════════════════════════════╝");
+  console.log("");
+  console.log("  ── 下一步:配置 API Key ──────────────────────────────────────");
+  console.log("");
+  console.log("    运行配置向导 (交互式, 支持多选 provider / 聚合服务预设):");
+  console.log("");
+  console.log("      vision-toolkit --configure");
+  console.log("");
+  console.log("    或直接设置环境变量:");
+  console.log("");
+  console.log("      set OPENAI_API_KEY=sk-...        (Windows)");
+  console.log("      export OPENAI_API_KEY=sk-...     (macOS/Linux)");
   console.log("");
   console.log("  ── 支持接入的 AI Agent ──────────────────────────────────────");
   console.log("");
@@ -106,13 +123,9 @@ async function main() {
   console.log('        }');
   console.log('      }');
   console.log("");
-  console.log("  ── 下一步 ───────────────────────────────────────────────────");
+  console.log("  ── 文档 ─────────────────────────────────────────────────────");
   console.log("");
-  console.log("    1. 如未在配置向导中设置, 运行 vision-toolkit --configure 配置 API Key");
-  console.log("    2. 复制上方配置到你的 Agent 配置文件 (详见文档)");
-  console.log("    3. 重启对应 Agent 即可使用视觉工具");
-  console.log("");
-  console.log("  文档: https://github.com/leiming2333/Vision-Toolkit");
+  console.log("    https://github.com/leiming2333/Vision-Toolkit");
   console.log("");
 }
 
