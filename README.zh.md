@@ -190,9 +190,9 @@ vision-toolkit --configure
 ```
 
 向导涵盖:
-- **服务商**:OpenAI / 通义千问 / Gemini / Anthropic Claude / 自定义 OpenAI 兼容端点
-- **API Key**:所选服务商的密钥(必填)
-- **Base URL**:OpenAI 兼容端点地址(支持代理 / 自部署)
+- **服务商(可多选)**:OpenAI / 通义千问 / Gemini / Anthropic Claude / 自定义 OpenAI 兼容端点 / 自定义 Anthropic 兼容端点 —— 可单选或全选
+- **API Key**:每个所选服务商的密钥(必填)
+- **Base URL**:OpenAI / Anthropic 兼容端点地址(支持代理 / 自部署)
 - **模型 ID (MODID)**:可跳过 —— 跳过时 server 启动会通过 `GET {base_url}/models` 自动获取可用模型
 
 ### 手动配置

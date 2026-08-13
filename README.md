@@ -189,9 +189,9 @@ vision-toolkit --configure
 ```
 
 The wizard covers:
-- **Provider**: OpenAI / Qwen / Gemini / Anthropic Claude / custom OpenAI-compatible endpoint
-- **API Key**: required for the selected provider
-- **Base URL**: for OpenAI-compatible endpoints (proxy / self-hosted supported)
+- **Provider (multi-select)**: OpenAI / Qwen / Gemini / Anthropic Claude / custom OpenAI-compatible endpoint / custom Anthropic-compatible endpoint — select one or all at once
+- **API Key**: required for each selected provider
+- **Base URL**: for OpenAI / Anthropic compatible endpoints (proxy / self-hosted supported)
 - **Model ID (MODID)**: optional — if skipped, the server auto-detects available models via `GET {base_url}/models` on startup
 
 ### Manual configuration

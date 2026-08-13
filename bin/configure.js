@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 交互式配置向导 —— 收集 provider / API Key / Base URL / 模型 ID。
+ * 交互式配置向导 —— 支持多选所有 provider, 同时配置多个服务商。
  *
  * 运行方式:
  *   vision-toolkit --configure       (通过 CLI)
@@ -20,62 +20,80 @@ const readline = require("node:readline");
 const ENV_FILE = path.join(os.homedir(), ".vision-toolkit.env");
 
 // ── Provider 预设 ───────────────────────────────────────────
-const PROVIDERS = {
-  "1": {
+// baseUrlKey: null = 不需要 Base URL; 字符串 = 对应的 env 变量名
+const PROVIDERS = [
+  {
+    id: "openai",
     label: "OpenAI (GPT-4o / DALL-E 3)",
-    prefix: "OPENAI",
-    defaults: {
-      OPENAI_BASE_URL: "https://api.openai.com/v1",
+    keyName: "OPENAI_API_KEY",
+    baseUrlKey: "OPENAI_BASE_URL",
+    baseUrlDefault: "https://api.openai.com/v1",
+    models: {
       OPENAI_VISION_MODEL: "gpt-4o",
       OPENAI_IMAGE_MODEL: "dall-e-3",
       OPENAI_EMBEDDING_MODEL: "text-embedding-3-small",
     },
-    keyName: "OPENAI_API_KEY",
   },
-  "2": {
+  {
+    id: "qwen",
     label: "通义千问 / DashScope (Qwen-VL / 万相)",
-    prefix: "DASHSCOPE",
-    defaults: {
+    keyName: "DASHSCOPE_API_KEY",
+    baseUrlKey: null,
+    models: {
       QWEN_VL_MODEL: "qwen-vl-plus",
       QWEN_IMAGE_MODEL: "wanx2.1-t2i-turbo",
       QWEN_EMBEDDING_MODEL: "multimodal-embedding-one-peace-v1",
     },
-    keyName: "DASHSCOPE_API_KEY",
   },
-  "3": {
+  {
+    id: "gemini",
     label: "Google Gemini (Gemini 2.0 Flash / Imagen 3)",
-    prefix: "GEMINI",
-    defaults: {
+    keyName: "GEMINI_API_KEY",
+    baseUrlKey: null,
+    models: {
       GEMINI_VISION_MODEL: "gemini-2.0-flash",
       GEMINI_IMAGE_MODEL: "imagen-3.0-generate-002",
       GEMINI_EMBEDDING_MODEL: "text-embedding-004",
     },
-    keyName: "GEMINI_API_KEY",
   },
-  "4": {
+  {
+    id: "anthropic",
     label: "Anthropic Claude (视觉分析, 不支持生图)",
-    prefix: "ANTHROPIC",
-    defaults: {
-      ANTHROPIC_BASE_URL: "https://api.anthropic.com",
-      ANTHROPIC_VISION_MODEL: "claude-sonnet-4-20250514",
-      ANTHROPIC_API_VERSION: "2023-06-01",
-    },
     keyName: "ANTHROPIC_API_KEY",
-    needsBaseUrl: true,
-    note: "Claude 仅支持视觉分析 (OCR/检测/描述/问答), 生图和 embedding 请配置其他 provider",
+    baseUrlKey: "ANTHROPIC_BASE_URL",
+    baseUrlDefault: "https://api.anthropic.com",
+    models: {
+      ANTHROPIC_VISION_MODEL: "claude-sonnet-4-20250514",
+    },
+    extra: { ANTHROPIC_API_VERSION: "2023-06-01" },
+    note: "Claude 仅支持视觉分析 (OCR/检测/描述/问答), 生图和 embedding 会自动降级到其他 provider",
   },
-  "5": {
+  {
+    id: "openai-custom",
     label: "自定义 OpenAI 兼容端点 (中转 / 自部署)",
-    prefix: "OPENAI",
-    defaults: {
-      OPENAI_BASE_URL: "https://your-endpoint.com/v1",
+    keyName: "OPENAI_API_KEY",
+    baseUrlKey: "OPENAI_BASE_URL",
+    baseUrlDefault: "https://your-endpoint.com/v1",
+    models: {
       OPENAI_VISION_MODEL: "",
       OPENAI_IMAGE_MODEL: "",
       OPENAI_EMBEDDING_MODEL: "",
     },
-    keyName: "OPENAI_API_KEY",
+    note: "模型 ID 可跳过, 启动时自动获取",
   },
-};
+  {
+    id: "anthropic-custom",
+    label: "自定义 Anthropic 兼容端点 (中转 / 自部署)",
+    keyName: "ANTHROPIC_API_KEY",
+    baseUrlKey: "ANTHROPIC_BASE_URL",
+    baseUrlDefault: "https://your-anthropic-proxy.com",
+    models: {
+      ANTHROPIC_VISION_MODEL: "",
+    },
+    extra: { ANTHROPIC_API_VERSION: "2023-06-01" },
+    note: "兼容端点 (如代理/中转), 模型 ID 可跳过",
+  },
+];
 
 // ── 工具函数 ────────────────────────────────────────────────
 
@@ -84,7 +102,9 @@ function ask(rl, question, defaultValue) {
   return new Promise((resolve) => {
     rl.question(`  ${question}${hint}: `, (answer) => {
       const trimmed = answer.trim();
-      if (!trimmed && defaultValue) return resolve(defaultValue);
+      if (!trimmed && defaultValue !== undefined && defaultValue !== "") {
+        return resolve(defaultValue);
+      }
       resolve(trimmed);
     });
   });
@@ -102,7 +122,6 @@ function readEnv(filePath) {
     if (eq === -1) continue;
     const key = trimmed.slice(0, eq).trim();
     let val = trimmed.slice(eq + 1).trim();
-    // 去掉引号
     if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
       val = val.slice(1, -1);
     }
@@ -127,6 +146,61 @@ function writeEnv(filePath, config) {
   fs.writeFileSync(filePath, lines.join("\n") + "\n", "utf8");
 }
 
+/** 配置单个 provider, 返回收集到的 config 键值对 */
+async function configureProvider(rl, provider, existing) {
+  console.log(`\n  ── 配置 ${provider.label} ──\n`);
+
+  if (provider.note) {
+    console.log(`  提示: ${provider.note}\n`);
+  }
+
+  const config = {};
+
+  // API Key
+  const existingKey = existing[provider.keyName] || "";
+  const keyHint = existingKey ? ` (已配置: ${existingKey.slice(0, 8)}...)` : "";
+  const apiKey = await ask(rl, `输入 ${provider.keyName}${keyHint}`, "");
+  if (apiKey) {
+    config[provider.keyName] = apiKey;
+  } else if (existingKey) {
+    console.log("  (保留已有 Key)");
+  } else {
+    console.log("  ⚠ 未输入 API Key, 跳过此 provider");
+    return config;
+  }
+
+  // Base URL
+  if (provider.baseUrlKey) {
+    const existingUrl = existing[provider.baseUrlKey] || "";
+    const urlDefault = provider.baseUrlDefault || existingUrl;
+    const baseUrl = await ask(rl, `输入 Base URL`, urlDefault);
+    if (baseUrl) config[provider.baseUrlKey] = baseUrl;
+  }
+
+  // Extra (如 ANTHROPIC_API_VERSION)
+  if (provider.extra) {
+    for (const [k, v] of Object.entries(provider.extra)) {
+      const val = await ask(rl, `输入 ${k}`, v);
+      if (val) config[k] = val;
+    }
+  }
+
+  // 模型 ID (MODID) —— 可跳过
+  console.log("");
+  for (const [mk, defaultVal] of Object.entries(provider.models)) {
+    const existingVal = existing[mk] || "";
+    if (defaultVal) {
+      const val = await ask(rl, `输入 ${mk}`, defaultVal);
+      if (val) config[mk] = val;
+    } else {
+      const val = await ask(rl, `输入 ${mk} (可跳过, 启动时自动获取)`, existingVal);
+      if (val) config[mk] = val;
+    }
+  }
+
+  return config;
+}
+
 // ── 主流程 ──────────────────────────────────────────────────
 
 async function run() {
@@ -142,78 +216,59 @@ async function run() {
   console.log("");
   console.log("  ╔══════════════════════════════════════════════════╗");
   console.log("  ║     Vision Toolkit — 配置向导                    ║");
+  console.log("  ║     支持多选, 可同时配置所有 provider            ║");
   console.log("  ╚══════════════════════════════════════════════════╝");
   console.log("");
 
-  // 1. 选择 provider
-  console.log("  第 1 步:选择 AI 服务商\n");
-  for (const [id, p] of Object.entries(PROVIDERS)) {
-    console.log(`    ${id}. ${p.label}`);
-  }
+  // 1. 多选 provider
+  console.log("  第 1 步:选择要配置的 AI 服务商 (可多选)\n");
+  PROVIDERS.forEach((p, i) => {
+    console.log(`    ${i + 1}. ${p.label}`);
+  });
   console.log("");
-  const choice = await ask(rl, "输入序号 (1-5)", "1");
-  const provider = PROVIDERS[choice] || PROVIDERS["1"];
+  console.log("  输入序号, 逗号分隔 (如 1,3,4)");
+  console.log("  输入 a = 全选所有 provider");
+  console.log("  回车 = 仅配置 OpenAI (默认)");
+  console.log("");
 
-  console.log(`\n  已选择: ${provider.label}\n`);
-  if (provider.note) {
-    console.log(`  提示: ${provider.note}\n`);
+  const answer = await ask(rl, "请输入", "");
+  let selected = [];
+
+  if (answer.toLowerCase() === "a") {
+    selected = PROVIDERS.slice();
+  } else if (answer) {
+    const indices = answer
+      .split(/[,，\s]+/)
+      .map((s) => parseInt(s, 10) - 1)
+      .filter((i) => i >= 0 && i < PROVIDERS.length);
+    selected = indices.map((i) => PROVIDERS[i]);
+  } else {
+    selected = [PROVIDERS[0]]; // 默认 OpenAI
   }
 
-  // 2. API Key
-  console.log("  第 2 步:配置 API Key\n");
-  const apiKey = await ask(rl, `输入 ${provider.keyName}`);
-  if (!apiKey) {
-    console.log("\n  ⚠ 未输入 API Key, 你可以稍后手动编辑 ~/.vision-toolkit.env");
+  if (selected.length === 0) {
+    console.log("\n  未选择任何 provider, 退出。");
+    rl.close();
+    return;
   }
 
-  // 3. Base URL (OpenAI / Anthropic / 自定义需要)
-  console.log("\n  第 3 步:配置 API 地址 (Base URL)\n");
-  let baseUrl = "";
-  if (provider.defaults.OPENAI_BASE_URL !== undefined) {
-    baseUrl = await ask(rl, "输入 Base URL", provider.defaults.OPENAI_BASE_URL);
-  } else if (provider.defaults.ANTHROPIC_BASE_URL !== undefined) {
-    baseUrl = await ask(rl, "输入 Base URL", provider.defaults.ANTHROPIC_BASE_URL);
-  } else if (choice === "2") {
-    console.log("  (DashScope 无需 Base URL, 跳过)");
-  } else if (choice === "3") {
-    console.log("  (Gemini 无需 Base URL, 跳过)");
-  }
+  console.log(`\n  已选择 ${selected.length} 个 provider:`);
+  selected.forEach((p, i) => console.log(`    ${i + 1}. ${p.label}`));
+  console.log("");
 
-  // 4. 模型 ID (MODID) —— 可跳过
-  console.log("\n  第 4 步:配置模型 ID (MODID)\n");
-  console.log("  提示: 可跳过, server 启动时会尝试通过 API 自动获取可用模型。\n");
+  // 2. 依次配置每个 provider
+  console.log("  第 2 步:依次配置每个 provider\n");
 
   const existing = readEnv(ENV_FILE);
   const config = { ...existing };
 
-  // 写入 API Key
-  if (apiKey) config[provider.keyName] = apiKey;
-  // 写入 Base URL (区分 OpenAI / Anthropic)
-  if (baseUrl) {
-    if (provider.defaults.ANTHROPIC_BASE_URL !== undefined) {
-      config.ANTHROPIC_BASE_URL = baseUrl;
-    } else {
-      config.OPENAI_BASE_URL = baseUrl;
-    }
+  for (const provider of selected) {
+    const collected = await configureProvider(rl, provider, existing);
+    Object.assign(config, collected);
   }
 
-  // 收集模型配置
-  const modelKeys = Object.keys(provider.defaults).filter((k) => k.endsWith("_MODEL"));
-  for (const mk of modelKeys) {
-    const defaultVal = provider.defaults[mk];
-    const shortName = mk.replace(/^[A-Z]+_/, "").toLowerCase();
-    if (choice === "5" && !defaultVal) {
-      // 自定义端点, 无默认值, 可跳过
-      const val = await ask(rl, `输入 ${mk} (可跳过, 启动时自动获取)`, "");
-      if (val) config[mk] = val;
-    } else {
-      const val = await ask(rl, `输入 ${mk}`, defaultVal);
-      if (val) config[mk] = val;
-    }
-  }
-
-  // 5. 写入文件
-  console.log("\n  第 5 步:保存配置\n");
+  // 3. 写入文件
+  console.log("\n  第 3 步:保存配置\n");
   try {
     writeEnv(ENV_FILE, config);
     console.log(`  ✓ 配置已写入: ${ENV_FILE}`);
@@ -225,7 +280,7 @@ async function run() {
     }
   }
 
-  // 6. 完成
+  // 4. 完成
   console.log("");
   console.log("  ════════════════════════════════════════════════");
   console.log("  ✓ 配置完成!");
