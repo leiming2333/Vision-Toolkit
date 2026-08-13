@@ -70,7 +70,7 @@ async function main() {
   console.log("");
   console.log("  ╔══════════════════════════════════════════════════════════════╗");
   console.log("  ║   Vision Toolkit 已安装完成 ✨                                ║");
-  console.log("  ║   多模态视觉 MCP + 文生图 Skill (OpenAI / Qwen / Gemini)     ║");
+  console.log("  ║   多模态视觉 MCP + 文生图 Skill (OpenAI/Qwen/Gemini/Claude)  ║");
   console.log("  ╚══════════════════════════════════════════════════════════════╝");
   console.log("");
   console.log("  ── 支持接入的 AI Agent ──────────────────────────────────────");

@@ -9,7 +9,7 @@
   - compare_images    : 图像相似度对比(余弦相似度)
 
 环境变量(至少配置一个 provider 的 Key),详见 .env.example:
-  OPENAI_API_KEY / DASHSCOPE_API_KEY / GEMINI_API_KEY
+  OPENAI_API_KEY / DASHSCOPE_API_KEY / GEMINI_API_KEY / ANTHROPIC_API_KEY
 
 传输方式:
   stdio (默认):  python server.py
@@ -132,7 +132,7 @@ def _get_provider(name: str | None) -> VisionProvider:
     if not _providers:
         raise RuntimeError(
             "未配置任何视觉 provider, 请至少设置一个 API Key: "
-            "OPENAI_API_KEY / DASHSCOPE_API_KEY / GEMINI_API_KEY"
+            "OPENAI_API_KEY / DASHSCOPE_API_KEY / GEMINI_API_KEY / ANTHROPIC_API_KEY"
         )
     if name:
         if name not in _providers:
@@ -268,7 +268,7 @@ async def generate_image(
     if not _providers:
         raise RuntimeError(
             "未配置任何视觉 provider, 请至少设置一个 API Key: "
-            "OPENAI_API_KEY / DASHSCOPE_API_KEY / GEMINI_API_KEY"
+            "OPENAI_API_KEY / DASHSCOPE_API_KEY / GEMINI_API_KEY / ANTHROPIC_API_KEY"
         )
     # 候选顺序: 指定的优先, 其余已配置的作为降级备选
     if provider:
@@ -306,7 +306,8 @@ async def compare_images(
     """对比两张图像的相似度, 返回 0.0~1.0 的余弦相似度。
 
     Qwen 使用原生多模态图像 embedding(按图像内容向量化);
-    OpenAI/Gemini 采用「先描述再文本 embedding」的兜底策略。
+    OpenAI/Gemini 采用「先描述再文本 embedding」的兜底策略;
+    Anthropic Claude 不支持 embedding, 会自动降级到其他 provider。
 
     Args:
         image1: 第一张图像(路径 / URL / data URL)。

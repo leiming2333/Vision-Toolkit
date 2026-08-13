@@ -7,6 +7,7 @@ from providers.base import VisionProvider
 from providers.openai_provider import OpenAIProvider
 from providers.qwen_provider import QwenProvider
 from providers.gemini_provider import GeminiProvider
+from providers.anthropic_provider import AnthropicProvider
 
 
 def env(name: str, default: str = "") -> str:
@@ -33,6 +34,7 @@ PROVIDER_CLASSES: dict[str, type[VisionProvider]] = {
     "openai": OpenAIProvider,
     "qwen": QwenProvider,
     "gemini": GeminiProvider,
+    "anthropic": AnthropicProvider,
 }
 
 __all__ = [
@@ -41,5 +43,6 @@ __all__ = [
     "OpenAIProvider",
     "QwenProvider",
     "GeminiProvider",
+    "AnthropicProvider",
     "env",
 ]

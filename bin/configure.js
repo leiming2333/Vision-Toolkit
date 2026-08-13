@@ -53,6 +53,18 @@ const PROVIDERS = {
     keyName: "GEMINI_API_KEY",
   },
   "4": {
+    label: "Anthropic Claude (视觉分析, 不支持生图)",
+    prefix: "ANTHROPIC",
+    defaults: {
+      ANTHROPIC_BASE_URL: "https://api.anthropic.com",
+      ANTHROPIC_VISION_MODEL: "claude-sonnet-4-20250514",
+      ANTHROPIC_API_VERSION: "2023-06-01",
+    },
+    keyName: "ANTHROPIC_API_KEY",
+    needsBaseUrl: true,
+    note: "Claude 仅支持视觉分析 (OCR/检测/描述/问答), 生图和 embedding 请配置其他 provider",
+  },
+  "5": {
     label: "自定义 OpenAI 兼容端点 (中转 / 自部署)",
     prefix: "OPENAI",
     defaults: {
@@ -139,10 +151,13 @@ async function run() {
     console.log(`    ${id}. ${p.label}`);
   }
   console.log("");
-  const choice = await ask(rl, "输入序号 (1-4)", "1");
+  const choice = await ask(rl, "输入序号 (1-5)", "1");
   const provider = PROVIDERS[choice] || PROVIDERS["1"];
 
   console.log(`\n  已选择: ${provider.label}\n`);
+  if (provider.note) {
+    console.log(`  提示: ${provider.note}\n`);
+  }
 
   // 2. API Key
   console.log("  第 2 步:配置 API Key\n");
@@ -151,11 +166,13 @@ async function run() {
     console.log("\n  ⚠ 未输入 API Key, 你可以稍后手动编辑 ~/.vision-toolkit.env");
   }
 
-  // 3. Base URL (仅 OpenAI / 自定义需要)
+  // 3. Base URL (OpenAI / Anthropic / 自定义需要)
   console.log("\n  第 3 步:配置 API 地址 (Base URL)\n");
   let baseUrl = "";
   if (provider.defaults.OPENAI_BASE_URL !== undefined) {
     baseUrl = await ask(rl, "输入 Base URL", provider.defaults.OPENAI_BASE_URL);
+  } else if (provider.defaults.ANTHROPIC_BASE_URL !== undefined) {
+    baseUrl = await ask(rl, "输入 Base URL", provider.defaults.ANTHROPIC_BASE_URL);
   } else if (choice === "2") {
     console.log("  (DashScope 无需 Base URL, 跳过)");
   } else if (choice === "3") {
@@ -171,15 +188,21 @@ async function run() {
 
   // 写入 API Key
   if (apiKey) config[provider.keyName] = apiKey;
-  // 写入 Base URL
-  if (baseUrl) config.OPENAI_BASE_URL = baseUrl;
+  // 写入 Base URL (区分 OpenAI / Anthropic)
+  if (baseUrl) {
+    if (provider.defaults.ANTHROPIC_BASE_URL !== undefined) {
+      config.ANTHROPIC_BASE_URL = baseUrl;
+    } else {
+      config.OPENAI_BASE_URL = baseUrl;
+    }
+  }
 
   // 收集模型配置
   const modelKeys = Object.keys(provider.defaults).filter((k) => k.endsWith("_MODEL"));
   for (const mk of modelKeys) {
     const defaultVal = provider.defaults[mk];
     const shortName = mk.replace(/^[A-Z]+_/, "").toLowerCase();
-    if (choice === "4" && !defaultVal) {
+    if (choice === "5" && !defaultVal) {
       // 自定义端点, 无默认值, 可跳过
       const val = await ask(rl, `输入 ${mk} (可跳过, 启动时自动获取)`, "");
       if (val) config[mk] = val;

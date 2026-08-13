@@ -190,7 +190,7 @@ vision-toolkit --configure
 ```
 
 向导涵盖:
-- **服务商**:OpenAI / 通义千问 / Gemini / 自定义 OpenAI 兼容端点
+- **服务商**:OpenAI / 通义千问 / Gemini / Anthropic Claude / 自定义 OpenAI 兼容端点
 - **API Key**:所选服务商的密钥(必填)
 - **Base URL**:OpenAI 兼容端点地址(支持代理 / 自部署)
 - **模型 ID (MODID)**:可跳过 —— 跳过时 server 启动会通过 `GET {base_url}/models` 自动获取可用模型
@@ -226,6 +226,10 @@ export GEMINI_API_KEY=...
 | `GEMINI_VISION_MODEL` | Gemini 视觉模型 | `gemini-2.0-flash` |
 | `GEMINI_IMAGE_MODEL` | Imagen 生图模型 | `imagen-3.0-generate-002` |
 | `GEMINI_EMBEDDING_MODEL` | 文本 embedding 模型(用于图像相似度对比) | `text-embedding-004` |
+| `ANTHROPIC_API_KEY` | Anthropic (Claude) 密钥 | — |
+| `ANTHROPIC_BASE_URL` | Anthropic API 端点 | `https://api.anthropic.com` |
+| `ANTHROPIC_VISION_MODEL` | Claude 视觉模型(仅分析,不支持生图/embedding) | `claude-sonnet-4-20250514` |
+| `ANTHROPIC_API_VERSION` | Anthropic API 版本头 | `2023-06-01` |
 
 ### Skill 独立配置(可选)
 
@@ -725,7 +729,8 @@ vision-toolkit/
                                   ▼
                    ┌───────────────────────────┐
                    │ 视觉/生图模型 HTTP API:    │
-                   │ OpenAI / Qwen / Gemini    │
+                   │ OpenAI / Qwen / Gemini /  │
+                   │ Anthropic Claude          │
                    └───────────────────────────┘
 
   npm 入口包装(任选其一):

@@ -189,7 +189,7 @@ vision-toolkit --configure
 ```
 
 The wizard covers:
-- **Provider**: OpenAI / Qwen / Gemini / custom OpenAI-compatible endpoint
+- **Provider**: OpenAI / Qwen / Gemini / Anthropic Claude / custom OpenAI-compatible endpoint
 - **API Key**: required for the selected provider
 - **Base URL**: for OpenAI-compatible endpoints (proxy / self-hosted supported)
 - **Model ID (MODID)**: optional — if skipped, the server auto-detects available models via `GET {base_url}/models` on startup
@@ -225,6 +225,10 @@ export GEMINI_API_KEY=...
 | `GEMINI_VISION_MODEL` | Gemini vision model | `gemini-2.0-flash` |
 | `GEMINI_IMAGE_MODEL` | Imagen image model | `imagen-3.0-generate-002` |
 | `GEMINI_EMBEDDING_MODEL` | Text embedding model (for image similarity) | `text-embedding-004` |
+| `ANTHROPIC_API_KEY` | Anthropic (Claude) key | — |
+| `ANTHROPIC_BASE_URL` | Anthropic API endpoint | `https://api.anthropic.com` |
+| `ANTHROPIC_VISION_MODEL` | Claude vision model (analysis only, no generation/embedding) | `claude-sonnet-4-20250514` |
+| `ANTHROPIC_API_VERSION` | Anthropic API version header | `2023-06-01` |
 
 ### Skill-independent config (optional)
 
@@ -724,7 +728,8 @@ vision-toolkit/
                                   ▼
                    ┌───────────────────────────┐
                    │ Vision/image model HTTP:  │
-                   │ OpenAI / Qwen / Gemini    │
+                   │ OpenAI / Qwen / Gemini /  │
+                   │ Anthropic Claude          │
                    └───────────────────────────┘
 
   npm entry wrapper (pick one):

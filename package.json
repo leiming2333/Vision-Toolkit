@@ -1,7 +1,7 @@
 {
   "name": "vision-toolkit",
-  "version": "0.4.0",
-  "description": "多模态视觉 MCP + 文生图 Skill 工具包 (OpenAI GPT-4o · 通义千问 Qwen-VL · Google Gemini)",
+  "version": "0.5.0",
+  "description": "多模态视觉 MCP + 文生图 Skill 工具包 (OpenAI GPT-4o · 通义千问 Qwen-VL · Google Gemini · Anthropic Claude)",
   "license": "MIT",
   "author": "leiming2333",
   "homepage": "https://github.com/leiming2333/Vision-Toolkit",
