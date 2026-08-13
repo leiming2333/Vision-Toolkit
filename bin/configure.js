@@ -69,6 +69,22 @@ const PROVIDERS = [
     note: "Claude 仅支持视觉分析 (OCR/检测/描述/问答), 生图和 embedding 会自动降级到其他 provider",
   },
   {
+    id: "unified-proxy",
+    label: "统一中转端点 (如 zenmux.ai / OneAPI / NewAPI, 一个 Key 通吃)",
+    keyName: "OPENAI_API_KEY",
+    baseUrlKey: "OPENAI_BASE_URL",
+    baseUrlDefault: "https://api.zenmux.ai/v1",
+    models: {
+      OPENAI_VISION_MODEL: "",
+      OPENAI_IMAGE_MODEL: "",
+      OPENAI_EMBEDDING_MODEL: "",
+      ANTHROPIC_VISION_MODEL: "",
+    },
+    extra: { ANTHROPIC_API_VERSION: "2023-06-01" },
+    note: "一个端点 + 一个 Key 同时配置 OpenAI 和 Anthropic (Claude), 模型 ID 可跳过",
+    unified: true,
+  },
+  {
     id: "openai-custom",
     label: "自定义 OpenAI 兼容端点 (中转 / 自部署)",
     keyName: "OPENAI_API_KEY",
@@ -162,6 +178,10 @@ async function configureProvider(rl, provider, existing) {
   const apiKey = await ask(rl, `输入 ${provider.keyName}${keyHint}`, "");
   if (apiKey) {
     config[provider.keyName] = apiKey;
+    // 统一中转端点: 同一个 Key 同时用于 Anthropic
+    if (provider.unified) {
+      config["ANTHROPIC_API_KEY"] = apiKey;
+    }
   } else if (existingKey) {
     console.log("  (保留已有 Key)");
   } else {
@@ -174,7 +194,21 @@ async function configureProvider(rl, provider, existing) {
     const existingUrl = existing[provider.baseUrlKey] || "";
     const urlDefault = provider.baseUrlDefault || existingUrl;
     const baseUrl = await ask(rl, `输入 Base URL`, urlDefault);
-    if (baseUrl) config[provider.baseUrlKey] = baseUrl;
+    if (baseUrl) {
+      config[provider.baseUrlKey] = baseUrl;
+      // 统一中转端点: 智能推导 Anthropic Base URL
+      // OpenAI base_url 通常带 /v1 (如 https://api.zenmux.ai/v1)
+      // Anthropic base_url 不带 /v1 (anthropic_provider.py 会拼接 /v1/messages)
+      if (provider.unified) {
+        let anthropicUrl = baseUrl.replace(/\/v1\/?$/, "");
+        if (anthropicUrl === baseUrl) {
+          // URL 不以 /v1 结尾, 直接用
+          anthropicUrl = baseUrl;
+        }
+        config["ANTHROPIC_BASE_URL"] = anthropicUrl;
+        console.log(`  (自动设置 ANTHROPIC_BASE_URL=${anthropicUrl})`);
+      }
+    }
   }
 
   // Extra (如 ANTHROPIC_API_VERSION)

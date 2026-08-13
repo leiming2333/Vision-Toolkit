@@ -1,8 +1,8 @@
 # Vision Toolkit
 
-> Multimodal vision **MCP Server** + standalone **Text-to-Image Skill**.
+> Multimodal vision **MCP Server** + standalone **multimodal Text-to-Image Skill**.
 >
-> Integrates **OpenAI GPT-4o · Tongyi Qwen-VL · Google Gemini**:
+> Integrates **OpenAI GPT-4o · Tongyi Qwen-VL · Google Gemini · Anthropic Claude**:
 > - **MCP tools**: image description/QA, OCR, object detection, text-to-image, image similarity
 > - **Standalone Skill**: generate images directly, available to any agent, no MCP server required
 
@@ -75,8 +75,9 @@
 | **OpenAI** GPT-4o + DALL·E 3 | ✅ | ✅ | ⚠️ describe-fallback |
 | **Tongyi Qwen** Qwen-VL + Wanxiang | ✅ | ✅ | ✅ native multimodal |
 | **Google** Gemini + Imagen 3 | ✅ | ✅ | ⚠️ describe-fallback |
+| **Anthropic** Claude | ✅ | ❌ auto-fallback | ❌ auto-fallback |
 
-> OpenAI / Gemini have no public image embedding API, so a "describe-then-text-embed" fallback is used. Tongyi Qwen `multimodal-embedding-one-peace-v1` is a native multimodal image embedding.
+> OpenAI / Gemini have no public image embedding API, so a "describe-then-text-embed" fallback is used. Tongyi Qwen `multimodal-embedding-one-peace-v1` is a native multimodal image embedding. Anthropic Claude supports vision analysis only (OCR/detection/description/QA); image generation and embedding auto-fall back to other configured providers.
 
 ---
 
@@ -189,10 +190,12 @@ vision-toolkit --configure
 ```
 
 The wizard covers:
-- **Provider (multi-select)**: OpenAI / Qwen / Gemini / Anthropic Claude / custom OpenAI-compatible endpoint / custom Anthropic-compatible endpoint — select one or all at once
+- **Provider (multi-select)**: OpenAI / Qwen / Gemini / Anthropic Claude / **unified proxy endpoint** / custom OpenAI-compatible endpoint / custom Anthropic-compatible endpoint — select one or all at once
 - **API Key**: required for each selected provider
 - **Base URL**: for OpenAI / Anthropic compatible endpoints (proxy / self-hosted supported)
 - **Model ID (MODID)**: optional — if skipped, the server auto-detects available models via `GET {base_url}/models` on startup
+
+> **Unified proxy endpoint**: for aggregator services like zenmux.ai / OneAPI / NewAPI — a single Base URL + API Key configures both OpenAI and Anthropic (Claude) at once, no need to fill them separately. Model IDs can be skipped and are auto-detected on startup.
 
 ### Manual configuration
 
@@ -496,7 +499,7 @@ OpenCode (JSON):
 
 All `image` params accept: **local path** / **HTTP(S) URL** / **data URL**.
 
-`provider` can be `openai` / `qwen` / `gemini`; omit to use the default (first configured provider).
+`provider` can be `openai` / `qwen` / `gemini` / `anthropic`; omit to use the default (first configured provider). Anthropic supports vision-analysis tools only (not `generate_image` / `compare_images`).
 
 ### Examples
 
@@ -635,7 +638,7 @@ python scripts/vision.py compare --image1 a.png --image2 b.png
 
 All `image` / `image1` / `image2` args accept: **local path** / **HTTP(S) URL** / **data URL**.
 
-`--provider` is optional for every subcommand (`openai` / `qwen` / `gemini`); omit to use the default. If the chosen provider fails, the script auto-tries the others.
+`--provider` is optional for every subcommand (`openai` / `qwen` / `gemini` / `anthropic`); omit to use the default. If the chosen provider fails, the script auto-tries the others. The `compare` subcommand does not support `anthropic` (no embedding capability; auto-falls back).
 
 | Subcommand | Args | Description |
 |-----------|------|-------------|
@@ -689,7 +692,8 @@ vision-toolkit/
 │   ├── base.py                  # Abstract base VisionProvider (analyze / generate / embed)
 │   ├── openai_provider.py       # OpenAI: GPT-4o + DALL·E 3 + text embedding
 │   ├── qwen_provider.py         # Tongyi Qwen: Qwen-VL + Wanxiang + multimodal embedding
-│   └── gemini_provider.py       # Gemini + Imagen 3 + text embedding
+│   ├── gemini_provider.py       # Gemini + Imagen 3 + text embedding
+│   └── anthropic_provider.py    # Anthropic Claude: vision analysis (no generation/embedding)
 ├── scripts/
 │   ├── generate_image.py        # Standalone text-to-image CLI (called by the text-to-image Skill)
 │   └── vision.py                # Standalone vision CLI (called by the image-analysis Skill)

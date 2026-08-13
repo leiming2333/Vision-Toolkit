@@ -1,8 +1,8 @@
 # Vision Toolkit
 
-> 多模态视觉 **MCP Server** + 独立 **Text-to-Image Skill**。
+> 多模态视觉 **MCP Server** + 独立 **多模态视觉 Text-to-Image Skill**。
 >
-> 接入 **OpenAI GPT-4o · 通义千问 Qwen-VL · Google Gemini**:
+> 接入 **OpenAI GPT-4o · 通义千问 Qwen-VL · Google Gemini · Anthropic Claude**:
 > - **MCP 工具**:图像描述/问答、OCR、物体检测、文生图、图像相似度对比
 > - **独立 Skill**:直接生图,任意 Agent 可用,无需启动 MCP Server
 
@@ -75,8 +75,9 @@
 | **OpenAI** GPT-4o + DALL·E 3 | ✅ | ✅ | ⚠️ 描述兜底 |
 | **通义千问** Qwen-VL + 万相 | ✅ | ✅ | ✅ 原生多模态 |
 | **Google** Gemini + Imagen 3 | ✅ | ✅ | ⚠️ 描述兜底 |
+| **Anthropic** Claude | ✅ | ❌ 自动降级 | ❌ 自动降级 |
 
-> OpenAI / Gemini 暂无公开的图像 embedding 接口,采用「先描述再用文本 embedding」的兜底策略;通义千问 `multimodal-embedding-one-peace-v1` 为原生多模态图像向量化。
+> OpenAI / Gemini 暂无公开的图像 embedding 接口,采用「先描述再用文本 embedding」的兜底策略;通义千问 `multimodal-embedding-one-peace-v1` 为原生多模态图像向量化。Anthropic Claude 仅支持视觉分析(OCR/检测/描述/问答),生图和 embedding 会自动降级到其他已配置的 provider。
 
 ---
 
@@ -190,10 +191,12 @@ vision-toolkit --configure
 ```
 
 向导涵盖:
-- **服务商(可多选)**:OpenAI / 通义千问 / Gemini / Anthropic Claude / 自定义 OpenAI 兼容端点 / 自定义 Anthropic 兼容端点 —— 可单选或全选
+- **服务商(可多选)**:OpenAI / 通义千问 / Gemini / Anthropic Claude / **统一中转端点** / 自定义 OpenAI 兼容端点 / 自定义 Anthropic 兼容端点 —— 可单选或全选
 - **API Key**:每个所选服务商的密钥(必填)
 - **Base URL**:OpenAI / Anthropic 兼容端点地址(支持代理 / 自部署)
 - **模型 ID (MODID)**:可跳过 —— 跳过时 server 启动会通过 `GET {base_url}/models` 自动获取可用模型
+
+> **统一中转端点**:适用于 zenmux.ai / OneAPI / NewAPI 等聚合中转服务 —— 一个 Base URL + 一个 API Key 即可同时配置 OpenAI 和 Anthropic (Claude),无需分别填写。模型 ID 可跳过,启动时自动获取。
 
 ### 手动配置
 
@@ -497,7 +500,7 @@ OpenCode(JSON):
 
 所有 `image` 参数统一支持:**本地路径** / **HTTP(S) URL** / **data URL**。
 
-`provider` 参数可选值为 `openai` / `qwen` / `gemini`,省略则使用默认(第一个已配置的 provider)。
+`provider` 参数可选值为 `openai` / `qwen` / `gemini` / `anthropic`,省略则使用默认(第一个已配置的 provider)。Anthropic 仅支持视觉分析类工具(不支持 `generate_image` / `compare_images`)。
 
 ### 调用示例
 
@@ -636,7 +639,7 @@ python scripts/vision.py compare --image1 a.png --image2 b.png
 
 所有 `image` / `image1` / `image2` 参数统一支持:**本地路径** / **HTTP(S) URL** / **data URL**。
 
-`--provider` 每个子命令都可省略(`openai` / `qwen` / `gemini`),省略则用默认;指定 provider 失败会自动降级到其他。
+`--provider` 每个子命令都可省略(`openai` / `qwen` / `gemini` / `anthropic`),省略则用默认;指定 provider 失败会自动降级到其他。`compare` 子命令不支持 `anthropic`(无 embedding 能力,会自动降级)。
 
 | 子命令 | 参数 | 说明 |
 |--------|------|------|
@@ -690,7 +693,8 @@ vision-toolkit/
 │   ├── base.py                  # 抽象基类 VisionProvider(analyze / generate / embed)
 │   ├── openai_provider.py       # OpenAI: GPT-4o + DALL·E 3 + 文本 embedding
 │   ├── qwen_provider.py         # 通义千问: Qwen-VL + 万相 + 多模态 embedding
-│   └── gemini_provider.py       # Gemini + Imagen 3 + 文本 embedding
+│   ├── gemini_provider.py       # Gemini + Imagen 3 + 文本 embedding
+│   └── anthropic_provider.py    # Anthropic Claude: 视觉分析(不支持生图/embedding)
 ├── scripts/
 │   ├── generate_image.py        # 独立文生图 CLI 脚本(text-to-image Skill 调用)
 │   └── vision.py                # 独立视觉理解 CLI 脚本(image-analysis Skill 调用)
