@@ -87,27 +87,42 @@ Vision Toolkit offers two install methods. **Prerequisite**: Python 3.10+ and at
 
 > **Looking to connect an AI agent?** Most MCP-compatible clients (Trae, Claude Desktop, Cursor, Windsurf, Cline, Continue, Roo Code, OpenCode, Codex CLI, Gemini CLI, Zed, GitHub Copilot, Claude Code) can launch Vision Toolkit automatically via `npx vision-toolkit`. Skip to [Connect to MCP Clients](#connect-to-mcp-clients) for per-client config snippets.
 
-### Method A: Install via npm (recommended, Python deps auto-managed)
+### Method A: Global install via npm (recommended)
+
+After global install, the `vision-toolkit` command is on your system PATH and can be run from any directory.
 
 ```bash
-# 1. Run on-the-fly without installing — the typical entry point used by MCP clients
-npx vision-toolkit
-
-# 2. Install globally (then the `vision-toolkit` command is on PATH)
+# 1. Install globally (recommended — vision-toolkit becomes globally available)
 npm install -g vision-toolkit
-vision-toolkit
 
-# 3. Install into your project
-npm install vision-toolkit
-npx vision-toolkit
+# 2. Configure API keys (interactive wizard, multi-select providers / aggregator presets)
+vision-toolkit --configure
+
+# 3. Start the MCP server
+vision-toolkit
 ```
+
+> **Command not found after install?** (`vision-toolkit: command not found` / `cannot be recognized as a cmdlet`)
+> This means npm's global bin directory is not on your PATH. Fix:
+> - **Windows**: Add `%APPDATA%\npm` to PATH, or via PowerShell:
+>   ```powershell
+>   [Environment]::SetEnvironmentVariable("Path", $env:Path + ";%APPDATA%\npm", "User")
+>   ```
+>   Then restart your terminal.
+> - **macOS / Linux**: Add to `~/.bashrc` or `~/.zshrc`:
+>   ```bash
+>   export PATH="$(npm config get prefix)/bin:$PATH"
+>   ```
+>   Then `source ~/.bashrc`.
+>
+> Verify install: `vision-toolkit --version` or `npm ls -g vision-toolkit`
 
 On first run, the Node wrapper auto-detects Python and tries to install dependencies (`mcp`, `httpx`, etc.). If auto-install fails, run manually:
 
 ```bash
-npm run setup
-# or
 vision-toolkit --setup
+# or, inside the package directory
+npm run setup
 ```
 
 Installing from GitHub is also supported:
@@ -115,6 +130,25 @@ Installing from GitHub is also supported:
 ```bash
 npm install -g github:leiming2333/Vision-Toolkit
 ```
+
+<details>
+<summary>Other npm usage (expand)</summary>
+
+```bash
+# Run on-the-fly without installing — the typical entry point used by MCP clients
+npx vision-toolkit
+
+# Run the config wizard on-the-fly
+npx vision-toolkit --configure
+
+# Install into your project (not recommended — command not on PATH, must use npx)
+npm install vision-toolkit
+npx vision-toolkit
+```
+
+</details>
+
+> **Note**: `npm install` (without `-g`) installs only into the project directory — the `vision-toolkit` command will NOT be on PATH, and you must use `npx vision-toolkit` or call it from `package.json` scripts. For global use, add `-g`.
 
 ### Method B: Local install (clone + pip)
 

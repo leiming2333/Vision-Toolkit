@@ -87,28 +87,43 @@ Vision Toolkit 提供两种安装方式,任选其一。**前置条件**:Python 3
 
 > **想接入某个 AI Agent?** 大部分支持 MCP 的客户端(Trae、Claude Desktop、Cursor、Windsurf、Cline、Continue、Roo Code、OpenCode、Codex CLI、Gemini CLI、Zed、GitHub Copilot、Claude Code)都能通过 `npx vision-toolkit` 自动拉起本工具。直接跳到 [在 MCP 客户端中接入](#在-mcp-客户端中接入) 查看各客户端的配置片段。
 
-### 方式 A:通过 npm 安装(推荐,自动管理 Python 依赖)
+### 方式 A:通过 npm 全局安装(推荐)
+
+全局安装后 `vision-toolkit` 命令会出现在系统 PATH 上,可直接在任意目录运行。
 
 ```bash
-# 1. 临时执行(无需安装)——MCP 客户端最常用的入口
-npx vision-toolkit
-
-# 2. 全局安装(之后 `vision-toolkit` 命令就在 PATH 上)
+# 1. 全局安装(推荐, 之后 vision-toolkit 命令全局可用)
 npm install -g vision-toolkit
-vision-toolkit
 
-# 3. 安装到当前项目
-npm install vision-toolkit
-npx vision-toolkit
+# 2. 配置 API Key (交互式向导, 支持多选 provider / 聚合服务预设)
+vision-toolkit --configure
+
+# 3. 启动 MCP server
+vision-toolkit
 ```
+
+> **安装后命令找不到?**(`vision-toolkit : 无法将"vision-toolkit"项识别为 cmdlet...`)
+> 这是 npm 全局 bin 目录不在 PATH 中导致的。解决方法:
+> - **Windows**: 将 `%APPDATA%\npm` 加入系统 PATH,或用 PowerShell:
+>   ```powershell
+>   [Environment]::SetEnvironmentVariable("Path", $env:Path + ";%APPDATA%\npm", "User")
+>   ```
+>   然后重启终端。
+> - **macOS / Linux**: 将以下内容加入 `~/.bashrc` 或 `~/.zshrc`:
+>   ```bash
+>   export PATH="$(npm config get prefix)/bin:$PATH"
+>   ```
+>   然后 `source ~/.bashrc`。
+>
+> 验证安装:`vision-toolkit --version` 或 `npm ls -g vision-toolkit`
 
 首次运行时,Node 包装器会自动检测 Python 并尝试安装依赖(`mcp`、`httpx` 等)。
 若自动安装失败,可手动执行:
 
 ```bash
-npm run setup
-# 或
 vision-toolkit --setup
+# 或在包目录下
+npm run setup
 ```
 
 从 GitHub 安装也支持:
@@ -116,6 +131,25 @@ vision-toolkit --setup
 ```bash
 npm install -g github:leiming2333/Vision-Toolkit
 ```
+
+<details>
+<summary>其他 npm 用法(展开)</summary>
+
+```bash
+# 临时执行(无需全局安装)——MCP 客户端最常用此入口
+npx vision-toolkit
+
+# 临时运行配置向导
+npx vision-toolkit --configure
+
+# 安装到当前项目(不推荐, 命令不在 PATH 上, 需用 npx 调用)
+npm install vision-toolkit
+npx vision-toolkit
+```
+
+</details>
+
+> **注意**:`npm install`(不带 `-g`)只装到项目目录,`vision-toolkit` 命令不会出现在 PATH 上,必须用 `npx vision-toolkit` 或在 `package.json` 的 `scripts` 中调用。如需全局使用,请加 `-g`。
 
 ### 方式 B:本地安装(clone + pip)
 
