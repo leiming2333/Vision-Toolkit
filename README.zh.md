@@ -35,6 +35,8 @@
   - [Continue](#continue)
   - [Gemini CLI](#gemini-cli)
   - [Zed](#zed)
+  - [Hermes Agent(Nous Research)](#hermes-agentnous-research)
+  - [DeepSeek Hermes](#deepseek-hermes)
   - [SSE 远程模式](#sse-远程模式)
 - [暴露的 MCP 工具](#暴露的-mcp-工具)
 - [文本生图 Skill](#文本生图-skill)
@@ -85,7 +87,7 @@
 
 Vision Toolkit 提供两种安装方式,任选其一。**前置条件**:Python 3.10+ 和至少一个 provider 的 API Key。
 
-> **想接入某个 AI Agent?** 大部分支持 MCP 的客户端(Trae、Claude Desktop、Cursor、Windsurf、Cline、Continue、Roo Code、OpenCode、Codex CLI、Gemini CLI、Zed、GitHub Copilot、Claude Code)都能通过 `npx vision-toolkit` 自动拉起本工具。直接跳到 [在 MCP 客户端中接入](#在-mcp-客户端中接入) 查看各客户端的配置片段。
+> **想接入某个 AI Agent?** 大部分支持 MCP 的客户端(Trae、Claude Desktop、Cursor、Windsurf、Cline、Continue、Roo Code、OpenCode、Codex CLI、Gemini CLI、Zed、Hermes Agent、GitHub Copilot、Claude Code)都能通过 `npx vision-toolkit` 自动拉起本工具。直接跳到 [在 MCP 客户端中接入](#在-mcp-客户端中接入) 查看各客户端的配置片段。
 
 ### 方式 A:通过 npm 全局安装(推荐)
 
@@ -483,6 +485,43 @@ Zed 把 MCP 服务器放在 `~/.config/zed/settings.json`(macOS:`~/Library/Appli
   }
 }
 ```
+
+### Hermes Agent(Nous Research)
+
+[Hermes Agent](https://github.com/NousResearch/hermes-agent) 是 Nous Research 开源的、可自托管的 AI Agent 框架,原生支持 MCP。它的 MCP 配置放在 `~/.hermes/config.yaml`(YAML,不是 JSON)的 `mcp_servers` 字段下。如果你从 Claude Code 迁移过来,`hermes import-agent claude-code` 会自动把已有的 `mcpServers` 块迁过去。
+
+编辑 `~/.hermes/config.yaml`:
+
+```yaml
+mcp_servers:
+  vision:
+    command: "npx"
+    args: ["-y", "vision-toolkit"]
+    env:
+      OPENAI_API_KEY: "sk-..."
+```
+
+然后启动 Hermes,它会在启动时自动发现 MCP 工具:
+
+```bash
+hermes chat
+```
+
+也可以用目录选择器安装:`hermes mcp` 会列出 Nous 审核过的 MCP 服务器;vision-toolkit 按上面手动添加即可。
+
+### DeepSeek Hermes
+
+[DeepSeek 官方文档](https://api-docs.deepseek.com/quick_start/agent_integrations/hermes) 提供了一键 Hermes Agent 接入路径。它用的还是 Hermes Agent 运行时,只是把 LLM provider 换成 DeepSeek。要在其中使用 Vision Toolkit,先把 MCP server 按上面加到 `~/.hermes/config.yaml`,再用 DeepSeek 作为 Agent 的 provider:
+
+```bash
+hermes setup
+# Quick Setup → Provider: DeepSeek
+# API key: sk-...(你的 DeepSeek key)
+# Base URL: https://api.deepseek.com
+# Model: deepseek-v4-pro
+```
+
+Vision Toolkit 的 `analyze_image` / `ocr` / `detect_objects` 走的是 `~/.vision-toolkit.env`(通过 `vision-toolkit --configure` 配置)里的 provider。DeepSeek V4 是纯文本模型,所以视觉任务请在工具包的 env 里保留一个 OpenAI/Qwen/Gemini/Anthropic 的 key —— Hermes 自己的 DeepSeek provider 与 Vision Toolkit 的 provider 路由互不影响。
 
 ### SSE 远程模式
 

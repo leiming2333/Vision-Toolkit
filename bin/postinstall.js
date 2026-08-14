@@ -105,6 +105,8 @@ async function main() {
   console.log("    11. Continue            (~/.continue/config.yaml)");
   console.log("    12. Gemini CLI          (~/.gemini/settings.json)");
   console.log("    13. Zed                 (context_servers)");
+  console.log("    14. Hermes Agent        (~/.hermes/config.yaml, mcp_servers)");
+  console.log("    15. DeepSeek Hermes     (DeepSeek 官方 Hermes 集成, provider=deepseek)");
   console.log("");
   console.log("  ── 快速接入 ─────────────────────────────────────────────────");
   console.log("");

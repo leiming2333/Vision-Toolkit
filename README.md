@@ -35,6 +35,8 @@
   - [Continue](#continue)
   - [Gemini CLI](#gemini-cli)
   - [Zed](#zed)
+  - [Hermes Agent (Nous Research)](#hermes-agent-nous-research)
+  - [DeepSeek Hermes](#deepseek-hermes)
   - [SSE remote mode](#sse-remote-mode)
 - [MCP Tools](#mcp-tools)
 - [Text-to-Image Skill](#text-to-image-skill)
@@ -85,7 +87,7 @@
 
 Vision Toolkit offers two install methods. **Prerequisite**: Python 3.10+ and at least one provider API key.
 
-> **Looking to connect an AI agent?** Most MCP-compatible clients (Trae, Claude Desktop, Cursor, Windsurf, Cline, Continue, Roo Code, OpenCode, Codex CLI, Gemini CLI, Zed, GitHub Copilot, Claude Code) can launch Vision Toolkit automatically via `npx vision-toolkit`. Skip to [Connect to MCP Clients](#connect-to-mcp-clients) for per-client config snippets.
+> **Looking to connect an AI agent?** Most MCP-compatible clients (Trae, Claude Desktop, Cursor, Windsurf, Cline, Continue, Roo Code, OpenCode, Codex CLI, Gemini CLI, Zed, Hermes Agent, GitHub Copilot, Claude Code) can launch Vision Toolkit automatically via `npx vision-toolkit`. Skip to [Connect to MCP Clients](#connect-to-mcp-clients) for per-client config snippets.
 
 ### Method A: Global install via npm (recommended)
 
@@ -482,6 +484,43 @@ Zed stores MCP servers under `context_servers` in `~/.config/zed/settings.json` 
   }
 }
 ```
+
+### Hermes Agent (Nous Research)
+
+[Hermes Agent](https://github.com/NousResearch/hermes-agent) is an open-source, self-hosted AI agent framework with native MCP support. It stores MCP servers under `mcp_servers` in `~/.hermes/config.yaml` (YAML, not JSON). If you're coming from Claude Code, `hermes import-agent claude-code` migrates an existing `mcpServers` block automatically.
+
+Edit `~/.hermes/config.yaml`:
+
+```yaml
+mcp_servers:
+  vision:
+    command: "npx"
+    args: ["-y", "vision-toolkit"]
+    env:
+      OPENAI_API_KEY: "sk-..."
+```
+
+Then start Hermes — it discovers MCP tools at startup:
+
+```bash
+hermes chat
+```
+
+You can also install via the catalog picker: `hermes mcp` lists Nous-approved MCP servers; vision-toolkit can be added manually as above.
+
+### DeepSeek Hermes
+
+[DeepSeek's official docs](https://api-docs.deepseek.com/quick_start/agent_integrations/hermes) document a first-party Hermes Agent integration path. This is the same Hermes Agent runtime, but with DeepSeek as the LLM provider. To use Vision Toolkit alongside it, add the MCP server to `~/.hermes/config.yaml` as above, then configure DeepSeek as the agent's provider:
+
+```bash
+hermes setup
+# Quick Setup → Provider: DeepSeek
+# API key: sk-... (your DeepSeek key)
+# Base URL: https://api.deepseek.com
+# Model: deepseek-v4-pro
+```
+
+Vision Toolkit's `analyze_image` / `ocr` / `detect_objects` will route through whichever provider you configure in `~/.vision-toolkit.env` (via `vision-toolkit --configure`). DeepSeek V4 is text-only, so for vision tasks keep an OpenAI/Qwen/Gemini/Anthropic key in the toolkit's env — Hermes' own DeepSeek provider is independent of Vision Toolkit's provider routing.
 
 ### SSE remote mode
 
