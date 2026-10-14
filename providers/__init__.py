@@ -3,12 +3,6 @@ from __future__ import annotations
 
 import os
 
-from providers.base import VisionProvider
-from providers.openai_provider import OpenAIProvider
-from providers.qwen_provider import QwenProvider
-from providers.gemini_provider import GeminiProvider
-from providers.anthropic_provider import AnthropicProvider
-
 
 def env(name: str, default: str = "") -> str:
     """读取配置变量,支持 Skill 独立配置回退。
@@ -27,6 +21,15 @@ def env(name: str, default: str = "") -> str:
     if os.environ.get(skill_name):
         return os.environ[skill_name]
     return os.environ.get(name, default)
+
+
+# 注意: env 必须先于下面的导入定义 —— 各 provider 模块在导入时
+# 会执行 `from providers import env`, 若 env 尚未定义会造成循环导入错误。
+from providers.base import VisionProvider  # noqa: E402
+from providers.openai_provider import OpenAIProvider  # noqa: E402
+from providers.qwen_provider import QwenProvider  # noqa: E402
+from providers.gemini_provider import GeminiProvider  # noqa: E402
+from providers.anthropic_provider import AnthropicProvider  # noqa: E402
 
 
 # name -> class

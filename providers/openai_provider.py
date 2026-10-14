@@ -71,9 +71,66 @@ class OpenAIProvider(VisionProvider):
                 headers=self._headers(),
                 json=body,
             )
+            if r.status_code == 404:
+                # 某些 OpenAI 兼容网关(如阿里云 Model Studio token-plan)不实现
+                # /images/generations, 图像模型只能通过 /chat/completions 调用
+                return await self._generate_via_chat(client, prompt, **kwargs)
             r.raise_for_status()
             b64 = r.json()["data"][0]["b64_json"]
             return f"data:image/png;base64,{b64}"
+
+    async def _generate_via_chat(
+        self, client: httpx.AsyncClient, prompt: str, **kwargs: Any
+    ) -> str:
+        """/images/generations 404 时的回退: 走 /chat/completions 多模态列表 content。"""
+        body = {
+            "model": kwargs.get("model", self.image_model),
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"type": "text", "text": prompt}],
+                }
+            ],
+        }
+        r = await client.post(
+            f"{self.base_url}/chat/completions",
+            headers=self._headers(),
+            json=body,
+        )
+        r.raise_for_status()
+        payload = r.json()
+        # 兼容 DashScope 原生信封: {"output": {"choices": [...]}}
+        choices = payload.get("choices") or (payload.get("output") or {}).get("choices") or []
+        for choice in choices:
+            content = (choice.get("message") or {}).get("content")
+            url = self._extract_image_url(content)
+            if url:
+                return url
+        raise RuntimeError("chat/completions 回退响应中未找到图像 URL")
+
+    @staticmethod
+    def _extract_image_url(content: Any) -> str | None:
+        """从 assistant content(字符串或 part 列表)中提取第一个图像 URL。"""
+        if isinstance(content, str):
+            return content if content.startswith(("http://", "https://", "data:")) else None
+        if not isinstance(content, list):
+            return None
+        for part in content:
+            if not isinstance(part, dict):
+                continue
+            # DashScope 风格: {"type": "image", "image": "<url>"} 或 {"image": "<url>"}
+            url = part.get("image")
+            if isinstance(url, str) and url.startswith(("http://", "https://", "data:")):
+                return url
+            # 标准 OpenAI 风格: {"type": "image_url", "image_url": {"url": "<url>"}}
+            image_url = part.get("image_url")
+            if isinstance(image_url, dict):
+                url = image_url.get("url")
+                if isinstance(url, str):
+                    return url
+            elif isinstance(image_url, str):
+                return image_url
+        return None
 
     async def embed(self, image: str) -> list[float]:
         # OpenAI 无原生图像 embedding: 先描述, 再对描述文本做 embedding
